@@ -288,7 +288,7 @@ Java_org_photonvision_raspi_PicamJNI_isVCSMSupported(JNIEnv *, jclass) {
 }
 
 JNIEXPORT jboolean JNICALL Java_org_photonvision_raspi_PicamJNI_createCamera(
-    JNIEnv *, jclass, jint width, jint height, jint fps, jboolean doAutoExposureMode) {
+    JNIEnv *, jclass, jint width, jint height, jint fps) {
   try {
     if (width < 0 || height < 0 || fps < 0) {
       throw std::runtime_error{"Width, height, and FPS must be positive"};
@@ -317,11 +317,6 @@ JNIEXPORT jboolean JNICALL Java_org_photonvision_raspi_PicamJNI_createCamera(
     // Sets default for retroreflective/fixed-exposure tracking
     RASPICAM_CAMERA_PARAMETERS cam_params{};
     raspicamcontrol_set_defaults(&cam_params);
-
-    // Re-enable auto exposure/iso and things after setup
-    if (doAutoExposureMode) {
-      raspicamcontrol_config_autoexposure(&cam_params);
-    }
 
     setup_mmal(&mmal_state, &cam_params, tex_state.width, tex_state.height,
                fps); // Throws
@@ -403,6 +398,19 @@ Java_org_photonvision_raspi_PicamJNI_destroyCamera(JNIEnv *, jclass) {
   }
 
   return false;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_photonvision_rasp_PicamJNI_configAutoExposure(
+    JNIEnv *, jboolean doAutoExposureMode
+) {
+  int result;
+  
+  result = raspicamcontrol_set_shutter_speed(mmal_state.camera, 0);
+  result += raspicamcontrol_set_exposure_mode(mmal_state.camera, MMAL_PARAM_EXPOSUREMODE_AUTO);
+  result += raspicamcontrol_set_awb_mode(mmal_state.camera, MMAL_PARAM_AWBMODE_AUTO);
+  result += raspicamcontrol_set_exposure_compensation(mmal_state.camera, 0);
+
+  return result != 0;
 }
 
 JNIEXPORT void JNICALL Java_org_photonvision_raspi_PicamJNI_setThresholds(
